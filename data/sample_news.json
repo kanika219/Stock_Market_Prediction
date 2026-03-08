@@ -1,0 +1,7 @@
+[
+  {"headline": "Apple expands AI chip production for next-generation devices", "source": "Market Insider", "date": "2024-03-08", "url": "https://example.com/apple-ai", "sentiment": "Positive"},
+  {"headline": "EU probes Apple App Store practices over competition concerns", "source": "Tech Daily", "date": "2024-03-07", "url": "https://example.com/apple-eu", "sentiment": "Negative"},
+  {"headline": "Tesla unveils new Supercharger V4 stations across Europe", "source": "EV News", "date": "2024-03-08", "url": "https://example.com/tesla-supercharger", "sentiment": "Positive"},
+  {"headline": "NVDA stock hits new all-time high amid AI chip demand", "source": "Wall Street Journal", "date": "2024-03-08", "url": "https://example.com/nvda-high", "sentiment": "Positive"},
+  {"headline": "Microsoft integrates Copilot deeper into Windows 11", "source": "Windows Blog", "date": "2024-03-07", "url": "https://example.com/msft-copilot", "sentiment": "Positive"}
+]
