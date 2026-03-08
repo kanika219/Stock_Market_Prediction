@@ -13,24 +13,34 @@ class DataFetcher:
     def fetch_stock_data(self, ticker, period="1y", interval="1d"):
         """Fetch historical stock price data."""
         try:
-            data = yf.download(ticker, period=period, interval=interval)
+            print(f"DEBUG: Downloading data for {ticker}...")
+            data = yf.download(ticker, period=period, interval=interval, progress=False)
             
             # Debug: Check data status
             if data.empty:
                 print(f"Warning: No data returned for ticker {ticker}")
-                return data
+                return pd.DataFrame()
 
             # Robust flattening of MultiIndex columns
             if isinstance(data.columns, pd.MultiIndex):
-                # If level 0 contains the price types (Open, Close, etc)
+                # Check if level 0 contains the price types (Open, Close, etc)
+                # In latest yfinance, it usually is (Price, Ticker)
                 data.columns = data.columns.get_level_values(0)
+            
+            # Verify columns we need exist
+            required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+            for col in required_cols:
+                if col not in data.columns:
+                    print(f"Error: Missing required column {col} in fetched data for {ticker}")
+                    return pd.DataFrame()
             
             # Ensure index is datetime
             data.index = pd.to_datetime(data.index)
             
+            print(f"DEBUG: Successfully fetched {len(data)} rows for {ticker}")
             return data
         except Exception as e:
-            print(f"Error fetching stock data for {ticker}: {e}")
+            print(f"CRITICAL Error fetching stock data for {ticker}: {str(e)}")
             return pd.DataFrame()
 
     def fetch_latest_news(self, ticker):

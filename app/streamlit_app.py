@@ -23,7 +23,12 @@ st.set_page_config(page_title="Stock Intelligence Dashboard", layout="wide")
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Market Dashboard", "News Intelligence", "Price Forecast", "Sentiment vs Price", "Investment Insights"])
 
-ticker = st.sidebar.selectbox("Select Ticker", ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN"])
+ticker_choice = st.sidebar.selectbox("Select Ticker", ["AAPL", "TSLA", "NVDA", "MSFT", "AMZN", "GOOGL", "META", "Other"])
+
+if ticker_choice == "Other":
+    ticker = st.sidebar.text_input("Enter Ticker Symbol", "AAPL").upper()
+else:
+    ticker = ticker_choice
 horizon = st.sidebar.slider("Prediction Horizon (days)", 1, 30, 7)
 
 # Load Classes
