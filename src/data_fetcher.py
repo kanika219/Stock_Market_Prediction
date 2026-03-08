@@ -12,11 +12,26 @@ class DataFetcher:
 
     def fetch_stock_data(self, ticker, period="1y", interval="1d"):
         """Fetch historical stock price data."""
-        data = yf.download(ticker, period=period, interval=interval)
-        # Robust flattening of MultiIndex columns
-        if hasattr(data.columns, 'levels') and len(data.columns.levels) > 1:
-            data.columns = data.columns.get_level_values(0)
-        return data
+        try:
+            data = yf.download(ticker, period=period, interval=interval)
+            
+            # Debug: Check data status
+            if data.empty:
+                print(f"Warning: No data returned for ticker {ticker}")
+                return data
+
+            # Robust flattening of MultiIndex columns
+            if isinstance(data.columns, pd.MultiIndex):
+                # If level 0 contains the price types (Open, Close, etc)
+                data.columns = data.columns.get_level_values(0)
+            
+            # Ensure index is datetime
+            data.index = pd.to_datetime(data.index)
+            
+            return data
+        except Exception as e:
+            print(f"Error fetching stock data for {ticker}: {e}")
+            return pd.DataFrame()
 
     def fetch_latest_news(self, ticker):
         """Multi-source news pipeline with yfinance (Primary), Google News RSS (Fallback)."""

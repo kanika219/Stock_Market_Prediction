@@ -58,13 +58,11 @@ def get_news_data(ticker):
     return data_fetcher.fetch_latest_news(ticker)
 
 df_stock = get_stock_data(ticker)
-# Flatten columns if necessary (fail-safe)
-if hasattr(df_stock.columns, 'levels') and len(df_stock.columns.levels) > 1:
-    df_stock.columns = df_stock.columns.get_level_values(0)
 
 # Check if dataframe is empty
 if df_stock.empty or len(df_stock) < 2:
     st.error(f"Not enough data found for ticker {ticker}. Please try another ticker.")
+    st.info("Check your internet connection or ticker name.")
     st.stop()
 
 # Sidebar Ticker Information
