@@ -57,18 +57,29 @@ stock_predictor = load_stock_predictor()
 def get_stock_data(ticker):
     return data_fetcher.fetch_stock_data(ticker)
 
-# Cache news for 30 minutes
-@st.cache_data(ttl=1800)
+# Cache news for 1 hour
+@st.cache_data(ttl=3600)
 def get_news_data(ticker):
     return data_fetcher.fetch_latest_news(ticker)
 
 df_stock = get_stock_data(ticker)
 
 # Check if dataframe is empty
-if df_stock.empty or len(df_stock) < 2:
-    st.error(f"Not enough data found for ticker {ticker}. Please try another ticker.")
+if df_stock is None or df_stock.empty or len(df_stock) < 2:
+    st.error("Unable to retrieve live data.")
+    st.markdown("""
+    **Possible reasons:**
+    • Yahoo Finance temporary rate limit
+    • Network restriction on hosting environment
+    
+    Displaying cached or fallback data instead.
+    """)
     st.info("Check your internet connection or ticker name.")
     st.stop()
+
+# Get News Data
+news_result, news_status = get_news_data(ticker)
+df_news = news_result
 
 # Sidebar Ticker Information
 current_price = df_stock['Close'].iloc[-1].item()
@@ -77,19 +88,22 @@ price_change = ((current_price - prev_close) / prev_close) * 100
 
 st.sidebar.metric(label=f"Current {ticker} Price", value=format_currency(current_price), delta=f"{price_change:.2f}%")
 
+# Bonus: Data Source Status
+st.sidebar.markdown("---")
+st.sidebar.subheader("Data Source Status")
+st.sidebar.write(f"Stock Data: {'Live' if df_stock is not None and not df_stock.empty else 'Unavailable'}")
+st.sidebar.write(f"News Data: {news_status}")
+st.sidebar.write("Prediction Model: Local")
+
 # Main Content Logic
 if page == "Market Dashboard":
     st.title("📊 Market Dashboard")
     
     col1, col2, col3, col4 = st.columns(4)
     
-    # Simple news fetch for dashboard metrics
-    news_result = get_news_data(ticker)
-    dash_news = news_result[0] if isinstance(news_result, (tuple, list)) else news_result
-    
     news_sentiments = []
-    if not dash_news.empty:
-        for headline in dash_news['headline'].head(10):
+    if not df_news.empty:
+        for headline in df_news['headline'].head(10):
             _, score, _ = sentiment_analyzer.predict_sentiment(headline)
             news_sentiments.append(score)
     avg_sentiment = np.mean(news_sentiments) if news_sentiments else 0.0
@@ -114,13 +128,9 @@ if page == "Market Dashboard":
 elif page == "News Intelligence":
     st.title("🛡️ News Intelligence")
     
-    news_result = get_news_data(ticker)
-    df_news = news_result[0] if isinstance(news_result, (tuple, list)) else news_result
-    is_fallback = news_result[1] if isinstance(news_result, (tuple, list)) and len(news_result) > 1 else False
+    if news_status == "Fallback" or news_status == "Offline":
+        st.warning(f"Live {ticker} news unavailable. Showing {news_status.lower()} dataset.")
     
-    if is_fallback:
-        st.info("No recent ticker-specific headlines detected. Displaying broader market news instead.")
-
     # Process sentiment and impact
     news_rows = []
     positive_count = 0
@@ -131,12 +141,10 @@ elif page == "News Intelligence":
         sentiment, score, confidence = sentiment_analyzer.predict_sentiment(row['headline'])
         
         # Impact calculation: score * headline_length_factor (normalized)
-        # Using simple length factor: log(len) / 5
         length_factor = np.log1p(len(row['headline'])) / 5
         impact_score = score * length_factor
         impact_score = np.clip(impact_score, -1, 1)
         
-        sentiment_label = "Positive" if sentiment == "Positive" else "Negative" if sentiment == "Negative" else "Neutral"
         sentiment_emoji = "🟢 Positive" if sentiment == "Positive" else "🔴 Negative" if sentiment == "Negative" else "🟡 Neutral"
         
         if sentiment == "Positive": positive_count += 1
@@ -164,9 +172,8 @@ elif page == "News Intelligence":
     st.markdown("---")
     
     # SECTION 2 — RECENT HEADLINES TABLE
-    st.subheader(f"Recent Headlines Affecting {ticker if not is_fallback else 'Market'}")
+    st.subheader(f"Recent Headlines ({news_status} Data)")
     if not df_results.empty:
-        # Using st.dataframe for robustness
         display_df = df_results[["Headline", "Source", "Sentiment", "Impact Score", "Link"]]
         st.dataframe(display_df, use_container_width=True, height=400)
     else:
@@ -274,9 +281,8 @@ elif page == "Sentiment vs Price":
 elif page == "Investment Insights":
     st.title("💡 Investment Insights")
     
-    # Fetch news for sentiment summary
-    news_result = get_news_data(ticker)
-    dash_news = news_result[0] if isinstance(news_result, (tuple, list)) else news_result
+    # Use already fetched news for sentiment summary
+    dash_news = df_news
     
     # Pre-calculate sentiment
     news_sentiments = []
