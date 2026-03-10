@@ -2,6 +2,8 @@
 
 A real-time financial analytics dashboard that combines stock price trends, news sentiment, and short-term price forecasting.
 
+**Dashboard Link** : https://apple-stock-predictionn.streamlit.app/
+
 ## 🚀 Overview
 This dashboard analyzes financial news sentiment and stock price trends to provide investment insights and price predictions for top tech stocks (AAPL, TSLA, NVDA, MSFT, AMZN).
 
