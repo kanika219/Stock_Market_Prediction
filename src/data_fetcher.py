@@ -46,16 +46,18 @@ class DataFetcher:
             if news:
                 for item in news[:10]:
                     # Handle new yfinance news structure where data is inside 'content'
-                    content = item.get('content', {})
-                    if not content:
-                        # Fallback for old structure if it still exists in some environments
+                    content = item.get('content')
+                    if not isinstance(content, dict):
                         content = item
 
-                    headline = content.get('title', '')
-                    source = content.get('provider', {}).get('displayName', 'yfinance')
+                    # Extract headline (try multiple common fields)
+                    headline = content.get('title') or content.get('headline') or item.get('title') or item.get('headline') or ""
                     
-                    # Try to get date from pubDate (new) or providerPublishTime (old)
-                    date_val = content.get('pubDate') or content.get('providerPublishTime')
+                    # Extract source
+                    source = content.get('provider', {}).get('displayName') or content.get('publisher') or item.get('publisher') or 'yfinance'
+                    
+                    # Extract date
+                    date_val = content.get('pubDate') or content.get('providerPublishTime') or item.get('providerPublishTime')
                     if isinstance(date_val, int):
                         date_str = datetime.fromtimestamp(date_val).strftime('%Y-%m-%d')
                     elif isinstance(date_val, str):
@@ -66,9 +68,14 @@ class DataFetcher:
                     else:
                         date_str = ''
 
-                    # Try to get URL from clickThroughUrl (new) or link (old)
-                    url_obj = content.get('clickThroughUrl', {})
-                    url = url_obj.get('url') if isinstance(url_obj, dict) else content.get('link', '')
+                    # Extract URL
+                    url = ""
+                    click_through = content.get('clickThroughUrl')
+                    if isinstance(click_through, dict):
+                        url = click_through.get('url')
+                    
+                    if not url:
+                        url = content.get('link') or item.get('link') or content.get('url') or item.get('url') or ""
 
                     headlines.append({
                         "headline": headline,
@@ -113,7 +120,10 @@ class DataFetcher:
         # Try yfinance news first
         news = self.fetch_yfinance_news(ticker_symbol)
         if news and len(news) > 0:
-            return pd.DataFrame(news), "Live"
+            # Check if headlines are actually present
+            valid_headlines = [n for n in news if n.get('headline') and n.get('headline').strip()]
+            if valid_headlines:
+                return pd.DataFrame(news), "Live"
 
         # Try Google News fallback
         news = self.fetch_google_news(ticker_symbol)

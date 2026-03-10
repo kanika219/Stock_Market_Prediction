@@ -44,6 +44,9 @@ class SentimentAnalyzer:
 
     def predict_sentiment(self, text):
         """Predict sentiment and return score [-1, 1]."""
+        if not text or not text.strip():
+            return "Neutral", 0.0, 1.0
+
         if not self.model or not self.vectorizer:
             # Fallback to dummy sentiment if not trained
             return "Neutral", 0.0, 0.5
