@@ -45,11 +45,36 @@ class DataFetcher:
             headlines = []
             if news:
                 for item in news[:10]:
+                    # Handle new yfinance news structure where data is inside 'content'
+                    content = item.get('content', {})
+                    if not content:
+                        # Fallback for old structure if it still exists in some environments
+                        content = item
+
+                    headline = content.get('title', '')
+                    source = content.get('provider', {}).get('displayName', 'yfinance')
+                    
+                    # Try to get date from pubDate (new) or providerPublishTime (old)
+                    date_val = content.get('pubDate') or content.get('providerPublishTime')
+                    if isinstance(date_val, int):
+                        date_str = datetime.fromtimestamp(date_val).strftime('%Y-%m-%d')
+                    elif isinstance(date_val, str):
+                        try:
+                            date_str = date_val.split('T')[0]
+                        except:
+                            date_str = date_val
+                    else:
+                        date_str = ''
+
+                    # Try to get URL from clickThroughUrl (new) or link (old)
+                    url_obj = content.get('clickThroughUrl', {})
+                    url = url_obj.get('url') if isinstance(url_obj, dict) else content.get('link', '')
+
                     headlines.append({
-                        "headline": item.get('title'),
-                        "source": item.get('publisher', 'yfinance'),
-                        "date": datetime.fromtimestamp(item.get('providerPublishTime')).strftime('%Y-%m-%d') if item.get('providerPublishTime') else '',
-                        "url": item.get('link')
+                        "headline": headline,
+                        "source": source,
+                        "date": date_str,
+                        "url": url
                     })
             return headlines
         except Exception:
@@ -64,10 +89,10 @@ class DataFetcher:
             if feed.entries:
                 for entry in feed.entries[:10]:
                     headlines.append({
-                        "headline": entry.title,
+                        "headline": getattr(entry, 'title', ''),
                         "source": entry.source.title if hasattr(entry, 'source') else "Google News",
                         "date": getattr(entry, 'published', ''),
-                        "url": entry.link
+                        "url": getattr(entry, 'link', '')
                     })
             return headlines
         except Exception:

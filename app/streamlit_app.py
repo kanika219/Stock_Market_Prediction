@@ -104,7 +104,9 @@ if page == "Market Dashboard":
     news_sentiments = []
     if not df_news.empty:
         for headline in df_news['headline'].head(10):
-            _, score, _ = sentiment_analyzer.predict_sentiment(headline)
+            # Ensure headline is a string
+            headline_str = str(headline) if headline and not pd.isna(headline) else ""
+            _, score, _ = sentiment_analyzer.predict_sentiment(headline_str)
             news_sentiments.append(score)
     avg_sentiment = np.mean(news_sentiments) if news_sentiments else 0.0
     
@@ -138,10 +140,12 @@ elif page == "News Intelligence":
     negative_count = 0
     
     for _, row in df_news.iterrows():
-        sentiment, score, confidence = sentiment_analyzer.predict_sentiment(row['headline'])
+        # Ensure headline is a string to avoid TypeError in len()
+        headline = str(row['headline']) if row['headline'] and not pd.isna(row['headline']) else ""
+        sentiment, score, confidence = sentiment_analyzer.predict_sentiment(headline)
         
         # Impact calculation: score * headline_length_factor (normalized)
-        length_factor = np.log1p(len(row['headline'])) / 5
+        length_factor = np.log1p(len(headline)) / 5
         impact_score = score * length_factor
         impact_score = np.clip(impact_score, -1, 1)
         
@@ -152,7 +156,7 @@ elif page == "News Intelligence":
         else: neutral_count += 1
         
         news_rows.append({
-            "Headline": row['headline'],
+            "Headline": headline,
             "Source": row['source'],
             "Sentiment": sentiment_emoji,
             "Impact Score": f"{impact_score:+.2f}",
